@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  main:
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    build:
+      context: .
+      target: develop-stage
+      dockerfile: ./dockerfile
+    volumes:
+      - storage:/app/storage
+volumes:
+  storage: 
