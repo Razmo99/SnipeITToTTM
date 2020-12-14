@@ -43,26 +43,26 @@ def main():
                 snipeit_device_matches=[]
                 #Iterate over ttm devices
                 for ttm_device in ttm_devices:
-                    #Search for the TTM Device in Snipe-IT based on serial no
+                    #Search for the TTM Device in Snipe-IT based on serial #
                     snipe_device_search=snipeit_session.assets_get_byserial(serial=ttm_device['serialNumber']).json()
                     #Iterate over returned rows, only really expect one, but meh.
                     for snipeit_device in snipe_device_search['rows']:
-                        #Check the serials match again cause multiple rows; this is mostly redundant
+                        #Check the serials match again because multiple rows; this is mostly redundant.
                         if snipeit_device['serial'] == ttm_device['serialNumber']:
                             snipeit_device_matches.append({
                                 'snipeit':snipeit_device,
                                 'ttm':ttm_device
                             })
                         else:
-                            logger.debug('Failed to find in Snipe-IT for SN: '+ttm_device['serialNumber'])
+                            logger.debug('Failed to find device in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
             
                 #Iterate over Snipe-IT Matches
                 for snipeit_device_match in snipeit_device_matches:
                     patch_data={}
-                    #Find all custom fields of the snipe it device and stick em in a list
+                    #Find all custom fields of the snipe-it device and stick em in a list
                     snipe_device_custom_fields=[]
                     [snipe_device_custom_fields.append(value['field']) for (key,value) in snipeit_device_match['snipeit']['custom_fields'].items()]                    
-                    #Iterate over field sets and match em up
+                    #Iterate over the fieldsets and match em up
                     for custom_fieldset in match_data['fieldsets']:
                         #Only add patch data for fields we know the asset has
                         if custom_fieldset in snipe_device_custom_fields:
@@ -82,8 +82,13 @@ def main():
                                 logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
                             else:
                                 if not assigned_to_id is None:
-                                    url_patch_data={match_data['snipeit_last_known_location']:"http://maps.google.com/maps?q={0},{1}".format(snipeit_device_match['ttm']["lastLatitude"],snipeit_device_match['ttm']["lastLongitude"])}
-                                    patch_assigned_to=snipeit_session.asset_patch(assigned_to_id,json.dumps(url_patch_data))
+                                    url_patch_data={
+                                            match_data['snipeit_last_known_location']:"http://maps.google.com/maps?q={0},{1}".format(snipeit_device_match['ttm']["lastLatitude"],snipeit_device_match['ttm']["lastLongitude"])
+                                        }
+                                    patch_assigned_to=snipeit_session.asset_patch(
+                                        assigned_to_id,
+                                        json.dumps(url_patch_data)
+                                        )
         else:
             logger.exception('Failed to Sync, unable to update tokens')
 
