@@ -6,7 +6,7 @@ services:
       - ./.env
     build:
       context: .
-      target: build-stage
+      #target: build-stage
       dockerfile: ./dockerfile
     volumes:
       - storage:/app/storage
