@@ -9,7 +9,7 @@ class conf_mgr(object):
 
         def __init__(self,config_name=None):
                 self.config = configparser.ConfigParser()
-                self.conf_name='config.ini' if config_name is None else config_name
+                self.conf_name='config.ini' if not config_name else config_name
                 
         def save_conf(self):
                 """Save the Current config of this class"""
@@ -57,16 +57,17 @@ class conf_mgr(object):
                         pass
 
                 for var in docker_enviroment_variables:
-                        if  not os.getenv(var['env_var'],'') == '':
+                        if os.getenv(var['env_var']):
                                 result=True
                                 logger.debug('Loaded env_var: '+var['env_var'])
-                                self.config[var['section']][var['value']]=os.getenv(var['env_var'],'')
+                                self.config[var['section']][var['value']]=os.getenv(var['env_var'])
                 return result                                
 
         def check_conf(self):
                 """Some basic checks to ensure that the config is usable"""
                 #TODO - more validation checks
                 if self.check_docker():
+                        logger.debug('Docker image detected')
                         return True  
                 else:
                         self.read_conf()            

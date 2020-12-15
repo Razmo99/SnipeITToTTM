@@ -1,4 +1,4 @@
-import os,pathlib
+import os,pathlib,sys
 import logging
 import logging.handlers
 import schedule
@@ -30,8 +30,8 @@ def main():
     default_match_data="{'fieldsets':[],'ttm_serial':'','ttm_latitude':'','ttm_longitude':'','snipeit_last_known_location':''}"
     match_data=literal_eval(os.getenv('MATCH_DATA',default_match_data))
 
-    if not match_data.get('ttm_serial') or not match_data.get('ttm_latitude') or not match_data.get('ttm_longitude') or not match_data.get('snipeit_last_known_location'):
-        logger.exception('One or more of the following are missing: ttm_serial, ttm_latitude, ttm_longitude, snipeit_last_known_location these are required to continue!')
+    if not match_data.get('ttm_serial') or not match_data.get('ttm_latitude') or not match_data.get('ttm_longitude') or not match_data.get('fieldsets') or not match_data.get('snipeit_last_known_location'):
+        logger.exception('One or more of the following are missing: ttm_serial, ttm_latitude, ttm_longitude, snipeit_last_known_location, fieldsets these are required to continue!')
     else:
         if ttm_token.update_token():
             # retreive ttm devices
@@ -93,10 +93,18 @@ def main():
             logger.exception('Failed to Sync, unable to update tokens')
 
 if __name__ == "__main__":
-    #Change the current working directory to be the parent of the main.py
-    working_dir=pathlib.Path(__file__).resolve().parent
-    os.chdir(working_dir)
-    print("changed working dir to: "+str(working_dir))
+    if getattr(sys,'frozen',False):
+        #Change the current working directory to be the parent of the main.py
+        working_dir=pathlib.Path(sys._MEIPASS)
+        os.chdir(working_dir)
+    else:
+        #Change the current working directory to be the parent of the main.py
+        working_dir=pathlib.Path(__file__).resolve().parent
+        os.chdir(working_dir)
+    if os.getenv('DEBUG') == True:
+        LoggingLevel=logging.DEBUG
+    else:
+        LoggingLevel=logging.INFO
     #Initialise logging
     logging_format='%(asctime)s - %(levelname)s - [%(module)s]::%(funcName)s() - %(message)s'
     log_name = os.getenv("LOG_SAVE_LOCATION",'snipeit_to_ttm.log')
@@ -109,14 +117,18 @@ if __name__ == "__main__":
     delay=0
     )
     console=logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(LoggingLevel)
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=LoggingLevel,
         format=logging_format,
         handlers=[rfh,console]
     )
     
     logger = logging.getLogger(__name__)
+    logger.info('Working dir is: '+str(working_dir))
+    logger.info('Logging level is: '+str(LoggingLevel))
+    run_every = os.getenv('SCHEDULE_RUN_EVERY_MINUTES',30)
+    logger.info('Syncing every: '+run_every+' minutes')    
     def job():
         logger.info('------------- Starting Session -------------')
         start=time.time()
@@ -125,8 +137,6 @@ if __name__ == "__main__":
         logger.info('Synced in:'+str(end-start)+' Second(s)')
         logger.info('------------- Finished Session -------------')
     job()
-    #run_every = os.getenv('SCHEDULE_RUN_EVERY_MINUTES',30)
-    #logger.info('Syncing every: '+run_every+' minutes')
     #schedule.every(int(run_every)).minutes.do(job)
     #while 1:
     #    schedule.run_pending()
