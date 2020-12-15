@@ -1,4 +1,7 @@
+#Get the base images
 FROM python:3.9.0 AS develop-stage
+#Install and update dependancy for staticx
+RUN apt update && apt install patchelf
 #Set the working directory
 WORKDIR /app
 #Set some python env vars
@@ -19,8 +22,8 @@ CMD ["python", "main.py"]
 FROM develop-stage as build-stage
 #Make a tmp dir this is needed for pyinstaller to use
 RUN mkdir tmp
-#Install and update dependancy for staticx
-RUN apt update && apt install patchelf
+#Make a storage dir this is for logs etc
+RUN mkdir /app/storage
 #Copy python dependencies from previous venv
 COPY --from=develop-stage /venv /venv
 #run pyinstaller to make a one-file bundled executable of the app
@@ -38,5 +41,7 @@ USER 65535
 COPY --from=build-stage --chown=65535:65535 /app/tmp /tmp
 #Copy the staticx application and set user permissions
 COPY --from=build-stage --chown=65535:65535 /app/dist/main_tmp /app/main
+#Copy the storage dir
+COPY --from=build-stage --chown=65535:65535 /app/storage /app/storage
 #Entry command for this stage
 CMD ["/app/main"]

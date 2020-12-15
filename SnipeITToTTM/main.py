@@ -136,8 +136,8 @@ if __name__ == "__main__":
         end=time.time()
         logger.info('Synced in:'+str(end-start)+' Second(s)')
         logger.info('------------- Finished Session -------------')
-    job()
-    #schedule.every(int(run_every)).minutes.do(job)
-    #while 1:
-    #    schedule.run_pending()
-    #    time.sleep(1)
+    
+    schedule.every(int(run_every)).minutes.do(job)
+    while 1:
+        schedule.run_pending()
+        time.sleep(1)
