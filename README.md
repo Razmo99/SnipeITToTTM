@@ -24,4 +24,5 @@ TTM_CLIENT_SECRET # Client Secret for O2Auth
 TTM_SAVE_LOCATION # Location to save the O2Auth Temp token
 SCHEDULE_RUN_EVERY_MINUTES #Number of minutes in between syncs
 DEBUG # Debug logging
+LOG_SAVE_LOCATION # location to save log file
 ~~~
