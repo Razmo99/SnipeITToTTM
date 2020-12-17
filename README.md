@@ -5,7 +5,7 @@
  1. Connects to Telstra Track Monitor and retrieves all trackers with a friendly name.
  1. Looks up each tracker by serial number in Snipe-IT. If a match is found, it then appends a dictionary with both devices to a match list.
  1. The match list is then iterated over.
-    1. Custom fields for each tracker are iterated over and matched with the inputted [fieldsets](###-match_data) to build a payload.
+    1. Custom fields for each tracker are iterated over and matched with the inputted [fieldsets](#match_data) to build a payload.
  1. The tracker is then patched in Snipe-IT.
     1. If the patch is successful, a check will be made to see if the tracker is checked out to another asset.\
     _If this returns true the checked-out to asset will be patched with the map url assuming it has the correct fieldsets._
@@ -20,7 +20,7 @@
 
 ## Installing
 1. Download the Repo and place it on your docker host.
-1. Create a new file next to the "docker-compose.yml" called ".env" enter in all the required [docker environment variables](#-Docker-environment-variables)
+1. Create a new file next to the "docker-compose.yml" called ".env" enter in all the required [docker environment variables](#docker-environment-variables)
 1. `docker-compose up --build`
    1. Don't add the `-d` flag so you can see if any errors occur on startup.\
    If it starts successfully then stop and start the container again in detached mode.
@@ -28,7 +28,7 @@
 ## Docker environment variables
 - SNIPEIT_SERVER {string} # URL to the Snipe-IT Server ***Required**
 - SNIPEIT_TOKEN {string} # API Token for the Snipe-IT Server ***Required**
-- MATCH_DATA {string} # Refer to [link](###-match_data) ***Required**
+- MATCH_DATA {string} # Refer to [link](#match_data) ***Required**
 - TTM_SERVER {string} # URL for the TTM API ***Required**
 - TTM_CLIENT_ID {string} # Client ID ***Required**
 - TTM_CLIENT_SECRET {string} # Client Secret for O2Auth ***Required**
