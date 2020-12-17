@@ -39,7 +39,7 @@ class conf_mgr(object):
                 logger.debug('Created: '+self.conf_name)
 
         def check_docker(self):
-                docker_enviroment_variables=[
+                docker_environment_variable=[
                         {'env_var':'SNIPEIT_SERVER','section':'snipeit_auth','value':'server'},
                         {'env_var':'SNIPEIT_TOKEN','section':'snipeit_auth','value':'token'},
                         {'env_var':'TTM_SERVER','section':'ttm_auth','value':'server'},
@@ -56,7 +56,7 @@ class conf_mgr(object):
                 else:
                         pass
 
-                for var in docker_enviroment_variables:
+                for var in docker_environment_variables:
                         if os.getenv(var['env_var']):
                                 result=True
                                 logger.debug('Loaded env_var: '+var['env_var'])
