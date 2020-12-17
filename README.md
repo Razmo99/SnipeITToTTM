@@ -68,4 +68,4 @@ It contains the following keys;
     _This field is used when a tracker is checked out to another asset._
 
 ## Dockerfile
-Slightly modified version of the dockerfile layed out [here](https://www.kevin-messer.net/how-to-create-a-small-and-secure-container-for-your-python-applications/)\
+Slightly modified version of the dockerfile layed out [here](https://www.kevin-messer.net/how-to-create-a-small-and-secure-container-for-your-python-applications/)
