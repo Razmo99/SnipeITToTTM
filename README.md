@@ -13,7 +13,7 @@
 ## Requirements
  - Telstra Track Monitor
     - Trackers
-    - O2Auth Grant
+    - OAuth2 Grant
  - Snipe-IT
     - API Key
     - Assets to track
