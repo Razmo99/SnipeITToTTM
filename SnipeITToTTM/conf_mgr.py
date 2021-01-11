@@ -39,7 +39,7 @@ class conf_mgr(object):
                 logger.debug('Created: '+self.conf_name)
 
         def check_docker(self):
-                docker_environment_variable=[
+                docker_environment_variables=[
                         {'env_var':'SNIPEIT_SERVER','section':'snipeit_auth','value':'server'},
                         {'env_var':'SNIPEIT_TOKEN','section':'snipeit_auth','value':'token'},
                         {'env_var':'TTM_SERVER','section':'ttm_auth','value':'server'},
