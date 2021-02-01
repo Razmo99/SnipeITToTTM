@@ -49,6 +49,7 @@ def main():
                     for snipeit_device in snipe_device_search['rows']:
                         #Check the serials match again because multiple rows; this is mostly redundant.
                         if snipeit_device['serial'] == ttm_device['serialNumber']:
+                            logger.debug('Found device in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
                             snipeit_device_matches.append({
                                 'snipeit':snipeit_device,
                                 'ttm':ttm_device
@@ -57,42 +58,47 @@ def main():
                             logger.debug('Failed to find device in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
             
                 #Iterate over Snipe-IT Matches
-                for snipeit_device_match in snipeit_device_matches:
-                    patch_data={}
-                    #Find all custom fields of the snipe-it device and stick em in a list
-                    snipe_device_custom_fields=[]
-                    [snipe_device_custom_fields.append(value['field']) for (key,value) in snipeit_device_match['snipeit']['custom_fields'].items()]                    
-                    #Iterate over the fieldsets and match em up
-                    for custom_fieldset in match_data['fieldsets']:
-                        #Only add patch data for fields we know the asset has
-                        if custom_fieldset in snipe_device_custom_fields:
-                            patch_data[custom_fieldset['snipeit']]=snipeit_device_match['ttm'][custom_fieldset['ttm']]
-                    #Patch data to tracker in Snipe-IT
-                    if patch_data:
-                        patch_operation = snipeit_session.asset_patch(snipeit_device_match['snipeit']['id'],json.dumps(patch_data))
-                        #If the patch succeeded and the tracker is checked out to another asset
-                        if patch_operation.ok:
-                            #Try get the id of the assigned_ to asset and patch the google maps url to it                        
-                            try:
-                                assigned_to_id = None
-                                assigned_to_id = snipeit_device_match['snipeit']['assigned_to']['id'] if snipeit_device_match['snipeit']['assigned_to']['type']=='asset' else None
-                            except KeyError:
-                                logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
-                            except TypeError:
-                                logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
-                            else:
-                                if not assigned_to_id is None:
-                                    url_patch_data={
-                                            match_data['snipeit_last_known_location']:"http://maps.google.com/maps?q={0},{1}".format(snipeit_device_match['ttm']["lastLatitude"],snipeit_device_match['ttm']["lastLongitude"])
-                                        }
-                                    patch_assigned_to=snipeit_session.asset_patch(
-                                        assigned_to_id,
-                                        json.dumps(url_patch_data)
-                                        )
+                if snipeit_device_matches:
+                    logger.debug('Total device matches: '+str(len(snipeit_device_matches)))
+                    for snipeit_device_match in snipeit_device_matches:
+                        patch_data={}
+                        #Find all custom fields of the snipe-it device and stick em in a list
+                        snipe_device_custom_fields=[]
+                        [snipe_device_custom_fields.append(value['field']) for (key,value) in snipeit_device_match['snipeit']['custom_fields'].items()]                    
+                        #Iterate over the fieldsets and match em up
+                        for custom_fieldset in match_data['fieldsets']:
+                            #Only add patch data for fields we know the asset has
+                            if custom_fieldset.get('snipeit') in snipe_device_custom_fields:
+                                patch_data[custom_fieldset['snipeit']]=snipeit_device_match['ttm'][custom_fieldset['ttm']]
+                        #Patch data to tracker in Snipe-IT
+                        if patch_data:
+                            patch_operation = snipeit_session.asset_patch(snipeit_device_match['snipeit']['id'],json.dumps(patch_data))
+                            #If the patch succeeded and the tracker is checked out to another asset
+                            if patch_operation.ok:
+                                #Try get the id of the assigned_ to asset and patch the google maps url to it                        
+                                try:
+                                    assigned_to_id = None
+                                    assigned_to_id = snipeit_device_match['snipeit']['assigned_to']['id'] if snipeit_device_match['snipeit']['assigned_to']['type']=='asset' else None
+                                except KeyError:
+                                    logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
+                                except TypeError:
+                                    logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
+                                else:
+                                    if not assigned_to_id is None:
+                                        url_patch_data={
+                                                match_data['snipeit_last_known_location']:"http://maps.google.com/maps?q={0},{1}".format(snipeit_device_match['ttm']["lastLatitude"],snipeit_device_match['ttm']["lastLongitude"])
+                                            }
+                                        patch_assigned_to=snipeit_session.asset_patch(
+                                            assigned_to_id,
+                                            json.dumps(url_patch_data)
+                                            )
+                else:
+                    logger.info('No Snipe-IT device matches patch')
         else:
             logger.exception('Failed to Sync, unable to update tokens')
 
 if __name__ == "__main__":
+
     if getattr(sys,'frozen',False):
         #Change the current working directory to be the parent of the main.py
         working_dir=pathlib.Path(sys._MEIPASS)
@@ -123,11 +129,13 @@ if __name__ == "__main__":
         format=logging_format,
         handlers=[rfh,console]
     )
-    
     logger = logging.getLogger(__name__)
+
     logger.info('Working dir is: '+str(working_dir))
     logger.info('Logging level is: '+str(LoggingLevel))
+
     run_every = os.getenv('SCHEDULE_RUN_EVERY_MINUTES',30)
+
     logger.info('Syncing every: '+run_every+' minutes')    
     def job():
         logger.info('------------- Starting Session -------------')
@@ -138,6 +146,8 @@ if __name__ == "__main__":
         logger.info('------------- Finished Session -------------')
     
     schedule.every(int(run_every)).minutes.do(job)
+    if os.getenv('DEBUG') == 'True':
+        job()
     while 1:
         schedule.run_pending()
         time.sleep(1)
