@@ -48,41 +48,63 @@ def main():
                     #Iterate over returned rows, only really expect one, but meh.
                     for snipeit_device in snipe_device_search['rows']:
                         #Check the serials match again because multiple rows; this is mostly redundant.
-                        if snipeit_device['serial'] == ttm_device['serialNumber']:
+                        if snipeit_device['serial'] == ttm_device['serialNumber'] and snipeit_device['available_actions'].get('update') == True:
                             logger.debug('Found device in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
                             snipeit_device_matches.append({
                                 'snipeit':snipeit_device,
                                 'ttm':ttm_device
                             })
+                        elif snipeit_device['available_actions'].get('update') == False:
+                            logger.debug('Device is not editable in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
                         else:
                             logger.debug('Failed to find device in Snipe-IT { SN: '+ttm_device['serialNumber']+' }')
             
                 #Iterate over Snipe-IT Matches
                 if snipeit_device_matches:
                     logger.debug('Total device matches: '+str(len(snipeit_device_matches)))
+                    #Iterate over Snipe-IT Matches
                     for snipeit_device_match in snipeit_device_matches:
                         patch_data={}
-                        #Find all custom fields of the snipe-it device and stick em in a list
-                        snipe_device_custom_fields=[]
-                        [snipe_device_custom_fields.append(value['field']) for (key,value) in snipeit_device_match['snipeit']['custom_fields'].items()]                    
+                        #Find all custom fields of the snipe-it device and stick em in a list with the custom field key
+                        #i.e {'_snipeit_ttm_deleted_2': 'ttm_deleted',...}
+                        snipe_device_custom_fields={}
+                        [snipe_device_custom_fields.update({value['field']:key}) for (key,value) in snipeit_device_match['snipeit']['custom_fields'].items()]
                         #Iterate over the fieldsets and match em up
+                        # These are specified in the .env file is the DB name of a custom field ie "_snipeit_ttm_deleted_2"
                         for custom_fieldset in match_data['fieldsets']:
                             #Only add patch data for fields we know the asset has
-                            if custom_fieldset.get('snipeit') in snipe_device_custom_fields:
-                                patch_data[custom_fieldset['snipeit']]=snipeit_device_match['ttm'][custom_fieldset['ttm']]
+                            snipeit_fieldset_db_name=custom_fieldset.get('snipeit')
+                            if snipeit_fieldset_db_name in snipe_device_custom_fields:
+                                #Only patch data that has changed
+                                custom_field_key=snipe_device_custom_fields[snipeit_fieldset_db_name]
+                                custom_field_value = snipeit_device_match['snipeit']['custom_fields'][custom_field_key]['value']
+                                custom_field_ttm = snipeit_device_match['ttm'][custom_fieldset['ttm']]
+                                #Literval eval is used because the snipe-it custom fields are received as strings and when compared to the ttm data incorrect matches etc occur
+                                #First the field is evaluated and compared if successful otherwise just a string comparison is completed                                         
+                                interperate_value = None
+                                try:
+                                    interperate_value = literal_eval(custom_field_value)
+                                except:
+                                    #Just compare the raw data probably strings
+                                    if custom_field_value != custom_field_ttm:
+                                        patch_data[custom_fieldset['snipeit']] = custom_field_ttm 
+                                else:
+                                    #Use the interperated data
+                                    if interperate_value != custom_field_ttm:
+                                        patch_data[custom_fieldset['snipeit']] = custom_field_ttm
                         #Patch data to tracker in Snipe-IT
                         if patch_data:
                             patch_operation = snipeit_session.asset_patch(snipeit_device_match['snipeit']['id'],json.dumps(patch_data))
                             #If the patch succeeded and the tracker is checked out to another asset
                             if patch_operation.ok:
-                                #Try get the id of the assigned_ to asset and patch the google maps url to it                        
+                                #Try get the id of the assigned_to asset and patch the google maps url to it                        
                                 try:
                                     assigned_to_id = None
                                     assigned_to_id = snipeit_device_match['snipeit']['assigned_to']['id'] if snipeit_device_match['snipeit']['assigned_to']['type']=='asset' else None
                                 except KeyError:
-                                    logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
+                                    logger.debug(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
                                 except TypeError:
-                                    logger.info(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
+                                    logger.debug(snipeit_device_match['snipeit']['name']+' is not checked out to another asset')
                                 else:
                                     if not assigned_to_id is None:
                                         url_patch_data={
